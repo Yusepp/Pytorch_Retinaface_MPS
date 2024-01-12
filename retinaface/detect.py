@@ -44,13 +44,26 @@ def load_model(model, pretrained_path, load_to_cpu, url_file_name=None):
         else:
             pretrained_dict = torch.load(pretrained_path, map_location=lambda storage, loc: storage)
     else:
-        device = torch.cuda.current_device()
-        if url_flag:
-            pretrained_dict = torch.hub.load_state_dict_from_url(pretrained_path,
-                                                                 map_location=lambda storage, loc: storage.cuda(device),
-                                                                 file_name=url_file_name)
+        if not torch.backends.mps.is_available():
+            device = torch.cuda.current_device()
         else:
-            pretrained_dict = torch.load(pretrained_path, map_location=lambda storage, loc: storage.cuda(device))
+            device = torch.device('mps')
+        
+        if url_flag:
+            if not torch.backends.mps.is_available():
+                pretrained_dict = torch.hub.load_state_dict_from_url(pretrained_path,
+                                                                    map_location=lambda storage, loc: storage.cuda(device),
+                                                                    file_name=url_file_name)
+            else:
+                pretrained_dict = torch.hub.load_state_dict_from_url(pretrained_path,
+                                                                    map_location=lambda storage, loc: storage.mps(),
+                                                                    file_name=url_file_name)
+        else:
+            if not torch.backends.mps.is_available():
+                pretrained_dict = torch.load(pretrained_path, map_location=lambda storage, loc: storage.cuda(device))
+            else:
+                pretrained_dict = torch.load(pretrained_path, map_location=lambda storage, loc: storage.mps())
+
     if "state_dict" in pretrained_dict.keys():
         pretrained_dict = remove_prefix(pretrained_dict['state_dict'], 'module.')
     else:

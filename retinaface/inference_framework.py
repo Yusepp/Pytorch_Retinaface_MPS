@@ -44,6 +44,10 @@ class RetinaFaceDetector:
 
         # Load net and model
         cpu_flag = 'cpu' in device
+        
+        if torch.backends.mps.is_available() and not cpu_flag:
+            device = 'mps'
+            
         net = rf_model.RetinaFace(cfg=cfg, phase='test')
         net = rf_detect.load_model(net, trained_model, cpu_flag, url_file_name=url_model_name)
         net.eval()
